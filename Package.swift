@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "CapacitorPluginAppLifecycle",
+    name: "CapacitorAppLifecycle",
     platforms: [.iOS(.v15)],
     products: [
         .library(
-            name: "CapacitorPluginAppLifecycle",
+            name: "CapacitorAppLifecycle",
             targets: ["AppLifecyclePlugin"])
     ],
     dependencies: [

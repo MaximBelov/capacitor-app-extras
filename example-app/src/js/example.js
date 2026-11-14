@@ -1,4 +1,4 @@
-import { AppLifecycle } from 'capacitor-plugin-app-lifecycle';
+import { AppLifecycle } from 'capacitor-app-lifecycle';
 
 const status = document.getElementById('status');
 

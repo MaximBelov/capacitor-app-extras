@@ -1,4 +1,4 @@
-# capacitor-plugin-app-lifecycle
+# capacitor-app-lifecycle
 
 Close a Capacitor app for good, from JavaScript, on iOS and Android.
 
@@ -12,7 +12,7 @@ have to filter out. This plugin does not do that.
 ## Install
 
 ```bash
-npm install capacitor-plugin-app-lifecycle
+npm install capacitor-app-lifecycle
 npx cap sync
 ```
 
@@ -21,7 +21,7 @@ Requires Capacitor 8. Android 8.0 (API 26) or newer, iOS 15 or newer. On iOS the
 ## Use
 
 ```typescript
-import { AppLifecycle } from 'capacitor-plugin-app-lifecycle';
+import { AppLifecycle } from 'capacitor-app-lifecycle';
 
 async function restartFromScratch() {
   // Tell the user first: the app disappears as soon as this runs.

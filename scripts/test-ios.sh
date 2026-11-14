@@ -19,7 +19,7 @@ udid=${IOS_SIMULATOR_UDID:-}
 
 echo "simulator: $udid"
 xcodebuild test \
-  -scheme CapacitorPluginAppLifecycle \
+  -scheme CapacitorAppLifecycle \
   -destination "id=$udid" \
   -derivedDataPath build/ios \
   "$@"
