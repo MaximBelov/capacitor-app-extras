@@ -1,23 +1,30 @@
 package io.github.maximbelov.applifecycle
 
-import com.getcapacitor.JSObject
+import android.os.Process
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
-import com.getcapacitor.annotation.CapacitorPlugin
 import com.getcapacitor.PluginMethod
+import com.getcapacitor.annotation.CapacitorPlugin
 
 @CapacitorPlugin(name = "AppLifecycle")
 class AppLifecyclePlugin : Plugin() {
 
-    private val implementation = AppLifecycle()
+    private val implementation by lazy {
+        AppLifecycle(
+            runOnMainThread = { task ->
+                val activity = getActivity()
+                if (activity != null) activity.runOnUiThread(task) else task.run()
+            },
+            finishTask = { getActivity()?.finishAffinity() },
+            killProcess = { Process.killProcess(Process.myPid()) },
+        )
+    }
 
     @PluginMethod
-    fun echo(call: PluginCall) {
-        val value = call.getString("value") ?: ""
-
-        val ret = JSObject().apply {
-            put("value", implementation.echo(value))
-        }
-        call.resolve(ret)
+    fun forceClose(call: PluginCall) {
+        // Resolved before the exit is scheduled, as the Cordova plugin did. The process usually dies before the result reaches
+        // JavaScript, so callers must not depend on it.
+        call.resolve()
+        implementation.forceClose()
     }
 }
