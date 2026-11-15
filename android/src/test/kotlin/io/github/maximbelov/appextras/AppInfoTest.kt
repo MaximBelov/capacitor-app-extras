@@ -6,30 +6,44 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class AppInfoTest {
+    private val id = "a1b2c3d4e5f60718"
+
+    private fun read(readFreeDiskBytes: () -> Long?) = AppInfo.read(readFreeDiskBytes) { id }
+
     @Test
     fun anAndroidAppIsNeverAniOSAppOnAMac() {
-        assertFalse(AppInfo.read { 1L }.isiOSAppOnMac)
+        assertFalse(read { 1L }.isiOSAppOnMac)
     }
 
     @Test
     fun passesTheFreeSpaceThrough() {
-        assertEquals(AppInfo(false, 123_456_789_012L), AppInfo.read { 123_456_789_012L })
+        assertEquals(AppInfo(false, 123_456_789_012L, id), read { 123_456_789_012L })
     }
 
     @Test
     fun aThrowingReadLeavesTheFreeSpaceOut() {
-        assertNull(AppInfo.read { throw IllegalArgumentException("no such path") }.freeDiskBytes)
+        assertNull(read { throw IllegalArgumentException("no such path") }.freeDiskBytes)
     }
 
     @Test
     fun aMissingOrNegativeValueLeavesTheFreeSpaceOut() {
-        assertNull(AppInfo.read { null }.freeDiskBytes)
-        assertNull(AppInfo.read { -1L }.freeDiskBytes)
+        assertNull(read { null }.freeDiskBytes)
+        assertNull(read { -1L }.freeDiskBytes)
     }
 
     @Test
     fun zeroFreeBytesIsAValueNotAnAbsence() {
-        assertEquals(0L, AppInfo.read { 0L }.freeDiskBytes)
+        assertEquals(0L, read { 0L }.freeDiskBytes)
+    }
+
+    @Test
+    fun passesTheInstallationIdThrough() {
+        assertEquals(id, read { 1L }.installationId)
+    }
+
+    @Test
+    fun aFailingFreeSpaceReadStillAnswersTheInstallationId() {
+        assertEquals(AppInfo(false, null, id), read { throw IllegalStateException("no disk") })
     }
 
     @Test
@@ -47,14 +61,15 @@ class AppInfoTest {
 
     @Test
     fun theResolvedObjectUsesTheNamesOfTheTypeScriptAPI() {
-        val json = AppInfo(false, 42L).toJSObject()
-        assertEquals(setOf("isiOSAppOnMac", "freeDiskBytes"), json.keys().asSequence().toSet())
+        val json = AppInfo(false, 42L, id).toJSObject()
+        assertEquals(setOf("isiOSAppOnMac", "freeDiskBytes", "installationId"), json.keys().asSequence().toSet())
         assertEquals(false, json.getBoolean("isiOSAppOnMac"))
         assertEquals(42L, json.getLong("freeDiskBytes"))
+        assertEquals(id, json.getString("installationId"))
     }
 
     @Test
     fun theResolvedObjectLeavesOutAnUnknownFreeSpace() {
-        assertEquals(setOf("isiOSAppOnMac"), AppInfo(false, null).toJSObject().keys().asSequence().toSet())
+        assertEquals(setOf("isiOSAppOnMac", "installationId"), AppInfo(false, null, id).toJSObject().keys().asSequence().toSet())
     }
 }

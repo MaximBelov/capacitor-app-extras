@@ -4,10 +4,10 @@ A small set of native calls that the official [`@capacitor/app`](https://capacit
 [`@capacitor/device`](https://capacitorjs.com/docs/apis/device) plugins do not offer, for iOS and Android. It is meant to sit
 next to them, not to replace them.
 
-| Call           | What it does                                                                      |
-| -------------- | --------------------------------------------------------------------------------- |
-| `forceClose()` | Ends the app process cleanly, so the next launch starts from scratch.             |
-| `getInfo()`    | Reads the free disk space, and whether an iPhone or iPad app is running on a Mac. |
+| Call           | What it does                                                                          |
+| -------------- | ------------------------------------------------------------------------------------- |
+| `forceClose()` | Ends the app process cleanly, so the next launch starts from scratch.                 |
+| `getInfo()`    | Reads the free disk space, a stable install id, and whether an iOS app runs on a Mac. |
 
 ## Install
 
@@ -71,36 +71,58 @@ if (Capacitor.isNativePlatform()) {
 Apple's guidelines discourage apps that quit on their own. Use this for recovery, after telling the user what is about to happen,
 not as a normal way to leave the app.
 
-## Reading the free space and the platform
+## Reading the free space, the install id and the platform
 
 ```typescript
-const { isiOSAppOnMac, freeDiskBytes } = await AppExtras.getInfo();
+const { isiOSAppOnMac, freeDiskBytes, installationId } = await AppExtras.getInfo();
 
 if (freeDiskBytes !== undefined && freeDiskBytes < 200 * 1024 * 1024) {
   // less than 200 MB left: warn before a large download or a database rebuild
 }
 ```
 
-| Field           | iOS                                                                    | Android                                                                             | Web     |
-| --------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
-| `isiOSAppOnMac` | `ProcessInfo.processInfo.isiOSAppOnMac`                                | always `false`                                                                      | rejects |
-| `freeDiskBytes` | `volumeAvailableCapacityForImportantUsage` of the app's home directory | `StatFs` on `Environment.getDataDirectory()`: `availableBlocksLong * blockSizeLong` | rejects |
+| Field            | iOS                                                                           | Android                                                                             | Web     |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
+| `isiOSAppOnMac`  | `ProcessInfo.processInfo.isiOSAppOnMac`                                       | always `false`                                                                      | rejects |
+| `freeDiskBytes`  | `volumeAvailableCapacityForImportantUsage` of the app's home directory        | `StatFs` on `Environment.getDataDirectory()`: `availableBlocksLong * blockSizeLong` | rejects |
+| `installationId` | `UserDefaults` value under `CDVUUID`, written once from `identifierForVendor` | `Settings.Secure.ANDROID_ID`                                                        | rejects |
 
 `freeDiskBytes` is left out of the result when the platform does not report it. On iOS the number includes space the system
 can free on demand (purgeable caches), which is what Apple recommends for deciding whether something the user asked for fits.
-Every call reads the values again, off the main thread on both platforms. On the web the call rejects with `UNIMPLEMENTED`, as
-`forceClose()` does.
+Every call reads the values again, off the main thread on both platforms. A value that cannot be read never makes the call fail.
+On the web the call rejects with `UNIMPLEMENTED`, as `forceClose()` does.
+
+### The installation id
+
+`installationId` is the same id `cordova-plugin-device` reported as `device.uuid`, kept across the move to Capacitor, so an app
+migrating from Cordova keeps one id per install. It is always present and never empty.
+
+**iOS.** `cordova-plugin-device` kept its id in `UserDefaults` under the key `CDVUUID`, and the plugin reads that key. When it is
+empty (a fresh install, or an app that never had the Cordova plugin), the plugin stores `UIDevice.current.identifierForVendor`
+there, or a new random UUID when the system has no vendor id yet, which can happen right after a restart before the device is
+unlocked. Once written the value is never changed, so a later change of the vendor id (all apps of that vendor deleted and one
+installed again) does not move it. Deleting the app deletes its `UserDefaults`, and with them the id. An app that used to write
+`CDVUUID` itself, for example from its `AppDelegate`, can drop that code: the plugin does the same thing.
+
+**Android.** `Settings.Secure.ANDROID_ID`, read through the app's context, which is what `cordova-plugin-device` answered. Since
+Android 8 it is scoped to the app's signing key and the user, and it survives reinstalls of the same signed app. Should the system
+answer nothing, the plugin stores a random UUID in its own `SharedPreferences` file (`CapacitorAppExtras`) and answers that from
+then on, even when `ANDROID_ID` comes back later.
+
+Neither is an advertising id, and neither needs a permission.
 
 ### The iOS privacy manifest
 
-The free-space read on iOS is one of Apple's
-[required-reason APIs](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api)
-(`NSPrivacyAccessedAPICategoryDiskSpace`). The plugin ships its own `PrivacyInfo.xcprivacy` declaring reason `E174.1`, as a
-resource of the Swift package and as a resource bundle of the CocoaPods pod, so Xcode includes it in the app's privacy report.
+Two reads on iOS are Apple's
+[required-reason APIs](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_use_of_required_reason_api):
+the free space (`NSPrivacyAccessedAPICategoryDiskSpace`) and the installation id kept in `UserDefaults`
+(`NSPrivacyAccessedAPICategoryUserDefaults`). The plugin ships its own `PrivacyInfo.xcprivacy` declaring reasons `E174.1` and
+`CA92.1`, as a resource of the Swift package and as a resource bundle of the CocoaPods pod, so Xcode includes it in the app's
+privacy report.
 
-The plugin's code is compiled into your app, though, so declare the same category in your **app's** `PrivacyInfo.xcprivacy` as
-well, with the reason that matches how you use the number. `E174.1` covers checking whether there is enough space to write files;
-see Apple's list for the others. For example:
+The plugin's code is compiled into your app, though, so declare the same categories in your **app's** `PrivacyInfo.xcprivacy` as
+well, with the reasons that match how you use the values. `E174.1` covers checking whether there is enough space to write files,
+and `CA92.1` reading and writing values only the app itself can access; see Apple's list for the others. For example:
 
 ```xml
 <key>NSPrivacyAccessedAPITypes</key>
@@ -113,21 +135,36 @@ see Apple's list for the others. For example:
       <string>E174.1</string>
     </array>
   </dict>
+  <dict>
+    <key>NSPrivacyAccessedAPIType</key>
+    <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+    <key>NSPrivacyAccessedAPITypeReasons</key>
+    <array>
+      <string>CA92.1</string>
+    </array>
+  </dict>
 </array>
 ```
+
+If your app collects the installation id (sends it off the device), say so under "Device ID" in the collected data types of your
+app's privacy manifest and in its App Store privacy details. The plugin itself sends nothing anywhere.
 
 An app that never calls `getInfo()` still links the code, so the declaration is the safe default for any app that installs the
 plugin.
 
 ## Coming from the Cordova plugin
 
-If you used a Cordova plugin that exposed `cordova.plugins.appLifecycle.forceClose()`, the call maps one to one:
+If you used a Cordova plugin that exposed `cordova.plugins.appLifecycle.forceClose()`, or the `uuid` of `cordova-plugin-device`,
+the calls map one to one:
 
-| Cordova                                                   | Capacitor                      |
-| --------------------------------------------------------- | ------------------------------ |
-| `cordova.plugins.appLifecycle.forceClose(success, error)` | `await AppExtras.forceClose()` |
+| Cordova                                                   | Capacitor                                    |
+| --------------------------------------------------------- | -------------------------------------------- |
+| `cordova.plugins.appLifecycle.forceClose(success, error)` | `await AppExtras.forceClose()`               |
+| `device.uuid` (`cordova-plugin-device`)                   | `(await AppExtras.getInfo()).installationId` |
 
-The native behaviour is the same: `exit(0)` after 0.3 seconds on iOS, `finishAffinity()` and a process kill on Android.
+The native behaviour is the same: `exit(0)` after 0.3 seconds on iOS, `finishAffinity()` and a process kill on Android, and the
+same id on both (see "The installation id" above). `@capacitor/device`'s `getId()` reads `identifierForVendor` afresh on iOS,
+which is not always the value stored under `CDVUUID`, so an app that switches to it can see a new id for some existing installs.
 
 ## API
 
@@ -184,11 +221,15 @@ getInfo() => Promise<AppInfo>
 Reads a few facts about the device the app runs on.
 
 Nothing is cached: every call reads the values again. On iOS the disk read
-runs on the plugin's own queue, not on the main thread.
+runs on the plugin's own queue, not on the main thread. A value that cannot
+be read never fails the call: `freeDiskBytes` is then left out, and
+`installationId` falls back as described below.
 
-On iOS the free disk space comes from a required-reason API, so an app that
-calls this has to declare `NSPrivacyAccessedAPICategoryDiskSpace` in its
-`PrivacyInfo.xcprivacy` (see "The iOS privacy manifest" in the README).
+On iOS the free disk space and the stored installation id come from
+required-reason APIs, so an app that calls this has to declare
+`NSPrivacyAccessedAPICategoryDiskSpace` and
+`NSPrivacyAccessedAPICategoryUserDefaults` in its `PrivacyInfo.xcprivacy`
+(see "The iOS privacy manifest" in the README).
 
 On the web it rejects with the `UNIMPLEMENTED` code.
 
@@ -204,10 +245,11 @@ On the web it rejects with the `UNIMPLEMENTED` code.
 
 #### AppInfo
 
-| Prop                | Type                 | Description                                                                                                                                                                                                                                                                                                                                          | Since |
-| ------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **`isiOSAppOnMac`** | <code>boolean</code> | iOS: `true` when an iPhone or iPad app runs on a Mac with Apple silicon (`ProcessInfo.processInfo.isiOSAppOnMac`). Android: always `false`.                                                                                                                                                                                                          | 0.1.0 |
-| **`freeDiskBytes`** | <code>number</code>  | Free bytes on the volume the app keeps its files on. On iOS this is `volumeAvailableCapacityForImportantUsage` of the app's home directory, which counts space the system can free on demand; on Android it is `availableBlocksLong * blockSizeLong` from `StatFs` on `Environment.getDataDirectory()`. Absent when the platform does not report it. | 0.1.0 |
+| Prop                 | Type                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Since |
+| -------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`isiOSAppOnMac`**  | <code>boolean</code> | iOS: `true` when an iPhone or iPad app runs on a Mac with Apple silicon (`ProcessInfo.processInfo.isiOSAppOnMac`). Android: always `false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 0.1.0 |
+| **`freeDiskBytes`**  | <code>number</code>  | Free bytes on the volume the app keeps its files on. On iOS this is `volumeAvailableCapacityForImportantUsage` of the app's home directory, which counts space the system can free on demand; on Android it is `availableBlocksLong * blockSizeLong` from `StatFs` on `Environment.getDataDirectory()`. Absent when the platform does not report it.                                                                                                                                                                                                                                                                                                                                                                                                             | 0.1.0 |
+| **`installationId`** | <code>string</code>  | One id per install of the app: it stays the same across launches and updates, and is gone when the app is deleted. It is the same id `cordova-plugin-device` reported as `device.uuid`, kept across the move to Capacitor, so an app migrating from Cordova keeps one id per install. - **iOS**: the value stored in `UserDefaults` under `CDVUUID`, the key `cordova-plugin-device` used. When there is none yet, `UIDevice.current.identifierForVendor` is stored there, or a new random UUID when the system has no vendor id, and it is never changed after that. - **Android**: `Settings.Secure.ANDROID_ID`. Should the system not report one, a random UUID is stored in the plugin's own preferences and used from then on. Always present, never empty. | 0.2.0 |
 
 </docgen-api>
 
@@ -218,12 +260,13 @@ Everything that can be tested without ending the test process is tested on every
 ```bash
 npm run test:unit      # TypeScript: the web rejects, native calls reach the right plugin and method
 npm run test:parity    # the API, the Swift, the Kotlin and this README name the same methods and the same getInfo fields
-npm run test:android   # JUnit on the JVM: the order of the steps, the double-call guard, the getInfo mapping
-npm run test:ios       # XCTest on a simulator: the delay, the guard, the main thread, the getInfo mapping, the privacy manifest
+npm run test:android   # JUnit on the JVM: the order of the steps, the double-call guard, the getInfo mapping, the id fallback
+npm run test:ios       # XCTest on a simulator: the delay, the guard, the main thread, the getInfo mapping, the stored id, the privacy manifest
 ```
 
-The native code takes the scheduler, the exit and the disk read as arguments, so the tests hand it fakes and check what it would
-have done. On iOS the real disk read also runs once, on the simulator.
+The native code takes the scheduler, the exit, the disk read and the id sources as arguments, so the tests hand it fakes and check
+what it would have done. On iOS the real disk read and the real vendor id also run once, on the simulator, with the id stored in a
+throwaway `UserDefaults` suite.
 
 What the tests cannot show is the process actually ending, because that would end the test too. That part needs a real app on a
 phone or a simulator: call `forceClose()`, check that the process is gone (`adb shell pidof <package>` prints nothing on Android;

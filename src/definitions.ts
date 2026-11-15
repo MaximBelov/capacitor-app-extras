@@ -30,11 +30,15 @@ export interface AppExtrasPlugin {
    * Reads a few facts about the device the app runs on.
    *
    * Nothing is cached: every call reads the values again. On iOS the disk read
-   * runs on the plugin's own queue, not on the main thread.
+   * runs on the plugin's own queue, not on the main thread. A value that cannot
+   * be read never fails the call: `freeDiskBytes` is then left out, and
+   * `installationId` falls back as described below.
    *
-   * On iOS the free disk space comes from a required-reason API, so an app that
-   * calls this has to declare `NSPrivacyAccessedAPICategoryDiskSpace` in its
-   * `PrivacyInfo.xcprivacy` (see "The iOS privacy manifest" in the README).
+   * On iOS the free disk space and the stored installation id come from
+   * required-reason APIs, so an app that calls this has to declare
+   * `NSPrivacyAccessedAPICategoryDiskSpace` and
+   * `NSPrivacyAccessedAPICategoryUserDefaults` in its `PrivacyInfo.xcprivacy`
+   * (see "The iOS privacy manifest" in the README).
    *
    * On the web it rejects with the `UNIMPLEMENTED` code.
    *
@@ -65,4 +69,27 @@ export interface AppInfo {
    * @since 0.1.0
    */
   freeDiskBytes?: number;
+
+  /**
+   * One id per install of the app: it stays the same across launches and
+   * updates, and is gone when the app is deleted.
+   *
+   * It is the same id `cordova-plugin-device` reported as `device.uuid`,
+   * kept across the move to Capacitor, so an app migrating from Cordova keeps
+   * one id per install.
+   *
+   * - **iOS**: the value stored in `UserDefaults` under `CDVUUID`, the key
+   *   `cordova-plugin-device` used. When there is none yet,
+   *   `UIDevice.current.identifierForVendor` is stored there, or a new random
+   *   UUID when the system has no vendor id, and it is never changed after
+   *   that.
+   * - **Android**: `Settings.Secure.ANDROID_ID`. Should the system not report
+   *   one, a random UUID is stored in the plugin's own preferences and used
+   *   from then on.
+   *
+   * Always present, never empty.
+   *
+   * @since 0.2.0
+   */
+  installationId: string;
 }

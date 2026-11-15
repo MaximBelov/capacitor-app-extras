@@ -40,8 +40,9 @@ describe('on a native platform', () => {
 
   it('sends getInfo to the native plugin and resolves with what it answers', async () => {
     nativePromise.mockClear();
-    nativePromise.mockResolvedValueOnce({ isiOSAppOnMac: false, freeDiskBytes: 1024 });
-    await expect(AppExtras.getInfo()).resolves.toEqual({ isiOSAppOnMac: false, freeDiskBytes: 1024 });
+    const info = { isiOSAppOnMac: false, freeDiskBytes: 1024, installationId: 'a1b2c3d4e5f60718' };
+    nativePromise.mockResolvedValueOnce(info);
+    await expect(AppExtras.getInfo()).resolves.toEqual(info);
     expect(nativePromise).toHaveBeenCalledWith('AppExtras', 'getInfo', undefined);
   });
 
