@@ -1,6 +1,6 @@
 {
   "name": "capacitor-app-extras",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Small additions to the official Capacitor App and Device plugins: close the app process, read the free disk space, a stable install id and whether an iOS app runs on a Mac",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",

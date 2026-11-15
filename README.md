@@ -2,7 +2,7 @@
 
 A small set of native calls that the official [`@capacitor/app`](https://capacitorjs.com/docs/apis/app) and
 [`@capacitor/device`](https://capacitorjs.com/docs/apis/device) plugins do not offer, for iOS and Android. It is meant to sit
-next to them, not to replace them.
+next to them, not to replace them. `getInfo()` also works on the web, so an app can call it the same way everywhere.
 
 | Call           | What it does                                                                          |
 | -------------- | ------------------------------------------------------------------------------------- |
@@ -53,8 +53,8 @@ Android the `await` normally never returns. Do not wait on it for anything.
 
 Calling `forceClose()` again while an exit is already on its way does not schedule a second one.
 
-On the web the call rejects with the `UNIMPLEMENTED` error code. A page cannot close its own browser tab, so decide what your app
-should do there instead, for example reload:
+On the web the call rejects with the `UNIMPLEMENTED` error code. A page cannot reliably close its own browser tab or window, so
+decide what your app should do there instead, for example reload:
 
 ```typescript
 import { Capacitor } from '@capacitor/core';
@@ -81,16 +81,16 @@ if (freeDiskBytes !== undefined && freeDiskBytes < 200 * 1024 * 1024) {
 }
 ```
 
-| Field            | iOS                                                                           | Android                                                                             | Web     |
-| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------- |
-| `isiOSAppOnMac`  | `ProcessInfo.processInfo.isiOSAppOnMac`                                       | always `false`                                                                      | rejects |
-| `freeDiskBytes`  | `volumeAvailableCapacityForImportantUsage` of the app's home directory        | `StatFs` on `Environment.getDataDirectory()`: `availableBlocksLong * blockSizeLong` | rejects |
-| `installationId` | `UserDefaults` value under `CDVUUID`, written once from `identifierForVendor` | `Settings.Secure.ANDROID_ID`                                                        | rejects |
+| Field            | iOS                                                                           | Android                                                                             | Web                                                                      |
+| ---------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `isiOSAppOnMac`  | `ProcessInfo.processInfo.isiOSAppOnMac`                                       | always `false`                                                                      | always `false`                                                           |
+| `freeDiskBytes`  | `volumeAvailableCapacityForImportantUsage` of the app's home directory        | `StatFs` on `Environment.getDataDirectory()`: `availableBlocksLong * blockSizeLong` | `quota - usage` from `navigator.storage.estimate()`: the origin's budget |
+| `installationId` | `UserDefaults` value under `CDVUUID`, written once from `identifierForVendor` | `Settings.Secure.ANDROID_ID`                                                        | random UUID in `localStorage` under `CapacitorAppExtras.installationId`  |
 
 `freeDiskBytes` is left out of the result when the platform does not report it. On iOS the number includes space the system
 can free on demand (purgeable caches), which is what Apple recommends for deciding whether something the user asked for fits.
 Every call reads the values again, off the main thread on both platforms. A value that cannot be read never makes the call fail.
-On the web the call rejects with `UNIMPLEMENTED`, as `forceClose()` does.
+On the web the call resolves with the same fields; see "On the web" below.
 
 ### The installation id
 
@@ -110,6 +110,24 @@ answer nothing, the plugin stores a random UUID in its own `SharedPreferences` f
 then on, even when `ANDROID_ID` comes back later.
 
 Neither is an advertising id, and neither needs a permission.
+
+### On the web
+
+Since 0.3.0 `getInfo()` resolves on the web as well, with the same fields as on iOS and Android, so an app does not need a
+separate code path for the browser. The required fields are always there; `freeDiskBytes` may be left out.
+
+- **`isiOSAppOnMac`** is always `false`.
+- **`installationId`** is a random UUID (`crypto.randomUUID()`, or one built from `crypto.getRandomValues()` on a page that is
+  not a secure context) stored in `localStorage` under the key `CapacitorAppExtras.installationId`. It stays the same across
+  reloads and visits, until the user clears the site's data. It is per origin and per browser profile, so it identifies a browser
+  storage, not a device or a user. When `localStorage` cannot be used (storage blocked by the browser, a sandboxed frame, a full
+  quota), the call does not fail: it answers a new random UUID for that page load instead, the same for every call until the page
+  is reloaded, and a different one after.
+- **`freeDiskBytes`** is `quota - usage` from `navigator.storage.estimate()`. **This is not the free disk space.** It is the
+  storage budget the browser grants this origin, minus what the origin already uses. Browsers set the quota by their own rules,
+  often as a share of the disk and sometimes rounded or padded on purpose, so treat it as "how much more this site may store",
+  for example before filling IndexedDB. It is left out when the browser has no `navigator.storage.estimate()`, the estimate fails,
+  or it does not report both numbers.
 
 ### The iOS privacy manifest
 
@@ -205,7 +223,8 @@ accordingly:
 Calling it again while an exit is already on its way resolves without
 scheduling a second one.
 
-On the web it rejects with the `UNIMPLEMENTED` code.
+On the web it rejects with the `UNIMPLEMENTED` code: a page cannot
+reliably close its own tab or window. Reload or navigate instead.
 
 **Since:** 0.0.1
 
@@ -231,7 +250,11 @@ required-reason APIs, so an app that calls this has to declare
 `NSPrivacyAccessedAPICategoryUserDefaults` in its `PrivacyInfo.xcprivacy`
 (see "The iOS privacy manifest" in the README).
 
-On the web it rejects with the `UNIMPLEMENTED` code.
+On the web (since 0.3.0) it resolves too, with the same fields:
+`isiOSAppOnMac` is `false`, `installationId` is a random UUID kept in
+`localStorage`, and `freeDiskBytes` is the origin's remaining storage
+budget from `navigator.storage.estimate()`, not the free disk space.
+Before 0.3.0 it rejected with the `UNIMPLEMENTED` code on the web.
 
 **Returns:** <code>Promise&lt;<a href="#appinfo">AppInfo</a>&gt;</code>
 
@@ -245,11 +268,11 @@ On the web it rejects with the `UNIMPLEMENTED` code.
 
 #### AppInfo
 
-| Prop                 | Type                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Since |
-| -------------------- | -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| **`isiOSAppOnMac`**  | <code>boolean</code> | iOS: `true` when an iPhone or iPad app runs on a Mac with Apple silicon (`ProcessInfo.processInfo.isiOSAppOnMac`). Android: always `false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 0.1.0 |
-| **`freeDiskBytes`**  | <code>number</code>  | Free bytes on the volume the app keeps its files on. On iOS this is `volumeAvailableCapacityForImportantUsage` of the app's home directory, which counts space the system can free on demand; on Android it is `availableBlocksLong * blockSizeLong` from `StatFs` on `Environment.getDataDirectory()`. Absent when the platform does not report it.                                                                                                                                                                                                                                                                                                                                                                                                             | 0.1.0 |
-| **`installationId`** | <code>string</code>  | One id per install of the app: it stays the same across launches and updates, and is gone when the app is deleted. It is the same id `cordova-plugin-device` reported as `device.uuid`, kept across the move to Capacitor, so an app migrating from Cordova keeps one id per install. - **iOS**: the value stored in `UserDefaults` under `CDVUUID`, the key `cordova-plugin-device` used. When there is none yet, `UIDevice.current.identifierForVendor` is stored there, or a new random UUID when the system has no vendor id, and it is never changed after that. - **Android**: `Settings.Secure.ANDROID_ID`. Should the system not report one, a random UUID is stored in the plugin's own preferences and used from then on. Always present, never empty. | 0.2.0 |
+| Prop                 | Type                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Since |
+| -------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| **`isiOSAppOnMac`**  | <code>boolean</code> | iOS: `true` when an iPhone or iPad app runs on a Mac with Apple silicon (`ProcessInfo.processInfo.isiOSAppOnMac`). Android: always `false`. Web: always `false`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | 0.1.0 |
+| **`freeDiskBytes`**  | <code>number</code>  | Free bytes on the volume the app keeps its files on. On iOS this is `volumeAvailableCapacityForImportantUsage` of the app's home directory, which counts space the system can free on demand; on Android it is `availableBlocksLong * blockSizeLong` from `StatFs` on `Environment.getDataDirectory()`. On the web it is `quota - usage` from `navigator.storage.estimate()`: how much more this origin may store, a budget the browser sets, which is not the free space of the disk. Absent when the platform does not report it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 0.1.0 |
+| **`installationId`** | <code>string</code>  | One id per install of the app: it stays the same across launches and updates, and is gone when the app is deleted. It is the same id `cordova-plugin-device` reported as `device.uuid`, kept across the move to Capacitor, so an app migrating from Cordova keeps one id per install. - **iOS**: the value stored in `UserDefaults` under `CDVUUID`, the key `cordova-plugin-device` used. When there is none yet, `UIDevice.current.identifierForVendor` is stored there, or a new random UUID when the system has no vendor id, and it is never changed after that. - **Android**: `Settings.Secure.ANDROID_ID`. Should the system not report one, a random UUID is stored in the plugin's own preferences and used from then on. - **Web**: a random UUID stored in `localStorage` under `CapacitorAppExtras.installationId`, so it is the same across reloads until the site's data is cleared. It is per origin and per browser profile. When `localStorage` cannot be used (blocked by the browser, a sandboxed frame, a full quota), a new random UUID is answered for each page load instead: the same for every call of that page, a different one after a reload. Always present, never empty. | 0.2.0 |
 
 </docgen-api>
 
@@ -258,7 +281,7 @@ On the web it rejects with the `UNIMPLEMENTED` code.
 Everything that can be tested without ending the test process is tested on every change:
 
 ```bash
-npm run test:unit      # TypeScript: the web rejects, native calls reach the right plugin and method
+npm run test:unit      # TypeScript: the web getInfo and forceClose, native calls reach the right plugin and method
 npm run test:parity    # the API, the Swift, the Kotlin and this README name the same methods and the same getInfo fields
 npm run test:android   # JUnit on the JVM: the order of the steps, the double-call guard, the getInfo mapping, the id fallback
 npm run test:ios       # XCTest on a simulator: the delay, the guard, the main thread, the getInfo mapping, the stored id, the privacy manifest

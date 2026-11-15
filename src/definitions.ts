@@ -20,7 +20,8 @@ export interface AppExtrasPlugin {
    * Calling it again while an exit is already on its way resolves without
    * scheduling a second one.
    *
-   * On the web it rejects with the `UNIMPLEMENTED` code.
+   * On the web it rejects with the `UNIMPLEMENTED` code: a page cannot
+   * reliably close its own tab or window. Reload or navigate instead.
    *
    * @since 0.0.1
    */
@@ -40,7 +41,11 @@ export interface AppExtrasPlugin {
    * `NSPrivacyAccessedAPICategoryUserDefaults` in its `PrivacyInfo.xcprivacy`
    * (see "The iOS privacy manifest" in the README).
    *
-   * On the web it rejects with the `UNIMPLEMENTED` code.
+   * On the web (since 0.3.0) it resolves too, with the same fields:
+   * `isiOSAppOnMac` is `false`, `installationId` is a random UUID kept in
+   * `localStorage`, and `freeDiskBytes` is the origin's remaining storage
+   * budget from `navigator.storage.estimate()`, not the free disk space.
+   * Before 0.3.0 it rejected with the `UNIMPLEMENTED` code on the web.
    *
    * @since 0.1.0
    */
@@ -54,6 +59,8 @@ export interface AppInfo {
    *
    * Android: always `false`.
    *
+   * Web: always `false`.
+   *
    * @since 0.1.0
    */
   isiOSAppOnMac: boolean;
@@ -63,8 +70,11 @@ export interface AppInfo {
    * `volumeAvailableCapacityForImportantUsage` of the app's home directory,
    * which counts space the system can free on demand; on Android it is
    * `availableBlocksLong * blockSizeLong` from `StatFs` on
-   * `Environment.getDataDirectory()`. Absent when the platform does not
-   * report it.
+   * `Environment.getDataDirectory()`.
+   *
+   * On the web it is `quota - usage` from `navigator.storage.estimate()`: how
+   * much more this origin may store, a budget the browser sets, which is not
+   * the free space of the disk. Absent when the platform does not report it.
    *
    * @since 0.1.0
    */
@@ -86,6 +96,13 @@ export interface AppInfo {
    * - **Android**: `Settings.Secure.ANDROID_ID`. Should the system not report
    *   one, a random UUID is stored in the plugin's own preferences and used
    *   from then on.
+   * - **Web**: a random UUID stored in `localStorage` under
+   *   `CapacitorAppExtras.installationId`, so it is the same across reloads
+   *   until the site's data is cleared. It is per origin and per browser
+   *   profile. When `localStorage` cannot be used (blocked by the browser, a
+   *   sandboxed frame, a full quota), a new random UUID is answered for each
+   *   page load instead: the same for every call of that page, a different
+   *   one after a reload.
    *
    * Always present, never empty.
    *

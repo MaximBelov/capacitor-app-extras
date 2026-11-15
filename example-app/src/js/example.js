@@ -1,6 +1,7 @@
 import { AppExtras } from 'capacitor-app-extras';
 
 const status = document.getElementById('status');
+const info = document.getElementById('info');
 
 window.forceClose = async () => {
   status.textContent = 'Closing...';
@@ -10,5 +11,14 @@ window.forceClose = async () => {
     status.textContent = 'Resolved, the app should exit now.';
   } catch (error) {
     status.textContent = `Rejected: ${error.code ?? ''} ${error.message}`;
+  }
+};
+
+// Resolves on iOS, Android and the web alike.
+window.getInfo = async () => {
+  try {
+    info.textContent = JSON.stringify(await AppExtras.getInfo(), null, 2);
+  } catch (error) {
+    info.textContent = `Rejected: ${error.code ?? ''} ${error.message}`;
   }
 };
