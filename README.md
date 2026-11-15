@@ -53,18 +53,10 @@ Android the `await` normally never returns. Do not wait on it for anything.
 
 Calling `forceClose()` again while an exit is already on its way does not schedule a second one.
 
-On the web the call rejects with the `UNIMPLEMENTED` error code. A page cannot reliably close its own browser tab or window, so
-decide what your app should do there instead, for example reload:
-
-```typescript
-import { Capacitor } from '@capacitor/core';
-
-if (Capacitor.isNativePlatform()) {
-  await AppExtras.forceClose();
-} else {
-  window.location.href = '/';
-}
-```
+On the web a page cannot close its own tab, so the app is started again instead: the promise resolves, and about 0.3
+seconds later the page is replaced by the app's root (`document.baseURI`) with `window.location.replace`. Every in-memory
+state is gone, as after a new launch; what the page keeps in storage (`localStorage`, IndexedDB) stays, so clear what has
+to be rebuilt before calling it.
 
 #### A note on App Store review
 
@@ -114,7 +106,7 @@ Neither is an advertising id, and neither needs a permission.
 ### On the web
 
 Since 0.3.0 `getInfo()` resolves on the web as well, with the same fields as on iOS and Android, so an app does not need a
-separate code path for the browser. The required fields are always there; `freeDiskBytes` may be left out.
+separate code path for the browser, and `forceClose()` reloads the app (see above). The required fields are always there; `freeDiskBytes` may be left out.
 
 - **`isiOSAppOnMac`** is always `false`.
 - **`installationId`** is a random UUID (`crypto.randomUUID()`, or one built from `crypto.getRandomValues()` on a page that is
@@ -223,8 +215,11 @@ accordingly:
 Calling it again while an exit is already on its way resolves without
 scheduling a second one.
 
-On the web it rejects with the `UNIMPLEMENTED` code: a page cannot
-reliably close its own tab or window. Reload or navigate instead.
+- **Web**: a page cannot close its own tab, so the app is started again
+  instead: the promise resolves, and about 0.3 seconds later the page is
+  replaced by the app's root (`document.baseURI`) with
+  `window.location.replace`, which drops all in-memory state as a new
+  launch would. Storage the page keeps (localStorage, IndexedDB) stays.
 
 **Since:** 0.0.1
 

@@ -1,8 +1,7 @@
-import { CapacitorException, ExceptionCode } from '@capacitor/core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppExtras } from '../../src';
-import { AppExtrasWeb, INSTALLATION_ID_STORAGE_KEY } from '../../src/web';
+import { AppExtrasWeb, FORCE_CLOSE_DELAY_MS, INSTALLATION_ID_STORAGE_KEY } from '../../src/web';
 
 // No native bridge on globalThis, so Capacitor reports the platform as 'web' and loads src/web.ts. The Node environment has no
 // localStorage and no navigator.storage, so each test stubs the ones it needs; afterEach puts the originals back.
@@ -182,22 +181,35 @@ describe('getInfo on the web', () => {
 });
 
 describe('forceClose on the web', () => {
-  it('rejects with UNIMPLEMENTED and says why, through the registered plugin', async () => {
-    await expect(AppExtras.forceClose()).rejects.toMatchObject({
-      code: ExceptionCode.Unimplemented,
-      message:
-        'forceClose is not available on the web: a page cannot reliably close its own tab or window. Reload or navigate instead.',
-    });
+  // The Node test environment has no window or document: each case puts in only what forceClose reads.
+  const replace = vi.fn();
+  beforeEach(() => {
+    vi.useFakeTimers();
+    replace.mockClear();
+    vi.stubGlobal('window', { location: { replace } });
+    vi.stubGlobal('document', { baseURI: 'https://app.example.com/base/' });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
   });
 
-  it('rejects with a CapacitorException, not a plain Error', async () => {
-    const error = await new AppExtrasWeb().forceClose().catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(CapacitorException);
+  it('resolves first, then loads the app root afresh after the same delay as iOS', async () => {
+    await expect(new AppExtrasWeb().forceClose()).resolves.toBeUndefined();
+    expect(replace).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(FORCE_CLOSE_DELAY_MS);
+
+    expect(replace).toHaveBeenCalledExactlyOnceWith('https://app.example.com/base/');
   });
 
-  it('does not navigate, reload or otherwise touch the page', async () => {
-    // The Node environment has no window: a web implementation that tried to reload would throw a ReferenceError instead.
-    const error = await AppExtras.forceClose().catch((e: unknown) => e);
-    expect(error).not.toBeInstanceOf(ReferenceError);
+  it('schedules one reload however often it is called', async () => {
+    const plugin = new AppExtrasWeb();
+    await plugin.forceClose();
+    await plugin.forceClose();
+
+    vi.advanceTimersByTime(FORCE_CLOSE_DELAY_MS * 2);
+
+    expect(replace).toHaveBeenCalledOnce();
   });
 });

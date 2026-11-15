@@ -20,8 +20,11 @@ export interface AppExtrasPlugin {
    * Calling it again while an exit is already on its way resolves without
    * scheduling a second one.
    *
-   * On the web it rejects with the `UNIMPLEMENTED` code: a page cannot
-   * reliably close its own tab or window. Reload or navigate instead.
+   * - **Web**: a page cannot close its own tab, so the app is started again
+   *   instead: the promise resolves, and about 0.3 seconds later the page is
+   *   replaced by the app's root (`document.baseURI`) with
+   *   `window.location.replace`, which drops all in-memory state as a new
+   *   launch would. Storage the page keeps (localStorage, IndexedDB) stays.
    *
    * @since 0.0.1
    */
