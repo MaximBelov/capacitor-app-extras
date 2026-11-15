@@ -13,6 +13,18 @@ describe('on the web', () => {
     });
   });
 
+  it('rejects getInfo with UNIMPLEMENTED through the registered plugin', async () => {
+    await expect(AppLifecycle.getInfo()).rejects.toMatchObject({
+      code: ExceptionCode.Unimplemented,
+      message: 'getInfo is not available on the web.',
+    });
+  });
+
+  it('rejects getInfo with a CapacitorException, not a plain Error', async () => {
+    const error = await new AppLifecycleWeb().getInfo().catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CapacitorException);
+  });
+
   it('rejects with a CapacitorException, not a plain Error', async () => {
     const error = await new AppLifecycleWeb().forceClose().catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CapacitorException);

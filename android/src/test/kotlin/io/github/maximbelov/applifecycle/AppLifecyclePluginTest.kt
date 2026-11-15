@@ -24,10 +24,17 @@ class AppLifecyclePluginTest {
     }
 
     @Test
+    fun exposesGetInfoAsAPluginMethod() {
+        val method = AppLifecyclePlugin::class.java.getMethod("getInfo", PluginCall::class.java)
+        assertNotNull(method.getAnnotation(PluginMethod::class.java))
+    }
+
+    @Test
     fun exposesNothingElse() {
         val methods = AppLifecyclePlugin::class.java.declaredMethods
             .filter { it.isAnnotationPresent(PluginMethod::class.java) }
             .map { it.name }
-        assertEquals(listOf("forceClose"), methods)
+            .sorted()
+        assertEquals(listOf("forceClose", "getInfo"), methods)
     }
 }

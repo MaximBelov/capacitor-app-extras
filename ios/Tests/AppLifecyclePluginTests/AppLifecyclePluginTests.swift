@@ -10,14 +10,16 @@ final class AppLifecyclePluginTests: XCTestCase {
         XCTAssertEqual(plugin.jsName, "AppLifecycle")
     }
 
-    func testExposesForceCloseAsAPromiseMethodAndNothingElse() {
+    func testExposesForceCloseAndGetInfoAsPromiseMethodsAndNothingElse() {
         let methods = AppLifecyclePlugin().pluginMethods
-        XCTAssertEqual(methods.map { $0.name }, ["forceClose"])
-        XCTAssertEqual(methods.first?.returnType, CAPPluginReturnPromise)
+        XCTAssertEqual(methods.map { $0.name }, ["forceClose", "getInfo"])
+        XCTAssertEqual(methods.map { $0.returnType }, [CAPPluginReturnPromise, CAPPluginReturnPromise])
     }
 
-    func testTheMethodNameHasAnObjectiveCSelector() {
-        // Capacitor calls the method through the selector "forceClose:"; a missing @objc compiles fine and fails on the phone.
-        XCTAssertTrue(AppLifecyclePlugin().responds(to: NSSelectorFromString("forceClose:")))
+    func testEveryMethodNameHasAnObjectiveCSelector() {
+        // Capacitor calls a method through the selector "<name>:"; a missing @objc compiles fine and fails on the phone.
+        for name in ["forceClose", "getInfo"] {
+            XCTAssertTrue(AppLifecyclePlugin().responds(to: NSSelectorFromString("\(name):")), name)
+        }
     }
 }

@@ -61,4 +61,6 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
     implementation "androidx.core:core-ktx:$androidxCoreKTXVersion"
     testImplementation "junit:junit:$junitVersion"
+    // JSObject is an org.json.JSONObject, which android.jar only stubs on the JVM; the real one lets the tests read it back.
+    testImplementation "org.json:json:20260814"
 }

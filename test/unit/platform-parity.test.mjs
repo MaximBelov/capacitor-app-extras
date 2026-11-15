@@ -47,3 +47,14 @@ test('the README documents every method', () => {
     assert.match(readme, new RegExp(`### ${method}\\(\\)`), `README.md has no section for ${method}()`);
   }
 });
+
+// The object getInfo() resolves with is built by hand on both platforms, so a misspelt key there reaches JavaScript as undefined.
+test('both platforms resolve getInfo() with exactly the fields of AppInfo', () => {
+  const body = read('src/definitions.ts').match(/export interface AppInfo \{([\s\S]*?)\n\}/)[1];
+  const fields = [...body.matchAll(/^\s+(\w+)\??:/gm)].map((m) => m[1]).sort();
+  assert.ok(fields.length > 0, 'no field found in AppInfo');
+  const swift = [...read('ios/Sources/AppLifecyclePlugin/AppInfo.swift').matchAll(/\["(\w+)"/g)].map((m) => m[1]);
+  const kotlin = [...read('android/src/main/kotlin/io/github/maximbelov/applifecycle/AppInfo.kt').matchAll(/put\("(\w+)"/g)].map((m) => m[1]);
+  assert.deepEqual([...new Set(swift)].sort(), fields);
+  assert.deepEqual([...new Set(kotlin)].sort(), fields);
+});

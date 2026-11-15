@@ -1,6 +1,8 @@
 package io.github.maximbelov.applifecycle
 
+import android.os.Environment
 import android.os.Process
+import android.os.StatFs
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -26,5 +28,15 @@ class AppLifecyclePlugin : Plugin() {
         // JavaScript, so callers must not depend on it.
         call.resolve()
         implementation.forceClose()
+    }
+
+    @PluginMethod
+    fun getInfo(call: PluginCall) {
+        // Capacitor runs plugin methods on its own background thread, so StatFs does not block the UI.
+        val info = AppInfo.read {
+            val stat = StatFs(Environment.getDataDirectory().path)
+            AppInfo.freeBytes(stat.availableBlocksLong, stat.blockSizeLong)
+        }
+        call.resolve(info.toJSObject())
     }
 }

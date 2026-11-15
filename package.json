@@ -1,7 +1,7 @@
 {
   "name": "capacitor-app-lifecycle",
-  "version": "0.0.1",
-  "description": "Cleanly terminate the app process on iOS and Android from a Capacitor app",
+  "version": "0.1.0",
+  "description": "Cleanly terminate the app process on iOS and Android from a Capacitor app, and read the free disk space",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -31,7 +31,10 @@
     "exit",
     "force close",
     "terminate",
-    "app lifecycle"
+    "app lifecycle",
+    "disk space",
+    "free space",
+    "isiOSAppOnMac"
   ],
   "scripts": {
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",

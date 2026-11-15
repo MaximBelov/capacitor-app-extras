@@ -15,5 +15,6 @@ describe('on a native platform without the native plugin', () => {
   it('rejects with UNIMPLEMENTED instead of falling back to the web implementation', async () => {
     const { AppLifecycle } = await import('../../src');
     await expect(AppLifecycle.forceClose()).rejects.toMatchObject({ code: ExceptionCode.Unimplemented });
+    await expect(AppLifecycle.getInfo()).rejects.toMatchObject({ code: ExceptionCode.Unimplemented });
   });
 });

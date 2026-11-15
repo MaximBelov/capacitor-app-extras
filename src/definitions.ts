@@ -22,7 +22,47 @@ export interface AppLifecyclePlugin {
    *
    * On the web it rejects with the `UNIMPLEMENTED` code.
    *
-   * @since 1.0.0
+   * @since 0.0.1
    */
   forceClose(): Promise<void>;
+
+  /**
+   * Reads a few facts about the device the app runs on.
+   *
+   * Nothing is cached: every call reads the values again. On iOS the disk read
+   * runs on the plugin's own queue, not on the main thread.
+   *
+   * On iOS the free disk space comes from a required-reason API, so an app that
+   * calls this has to declare `NSPrivacyAccessedAPICategoryDiskSpace` in its
+   * `PrivacyInfo.xcprivacy` (see "The iOS privacy manifest" in the README).
+   *
+   * On the web it rejects with the `UNIMPLEMENTED` code.
+   *
+   * @since 0.1.0
+   */
+  getInfo(): Promise<AppInfo>;
+}
+
+export interface AppInfo {
+  /**
+   * iOS: `true` when an iPhone or iPad app runs on a Mac with Apple silicon
+   * (`ProcessInfo.processInfo.isiOSAppOnMac`).
+   *
+   * Android: always `false`.
+   *
+   * @since 0.1.0
+   */
+  isiOSAppOnMac: boolean;
+
+  /**
+   * Free bytes on the volume the app keeps its files on. On iOS this is
+   * `volumeAvailableCapacityForImportantUsage` of the app's home directory,
+   * which counts space the system can free on demand; on Android it is
+   * `availableBlocksLong * blockSizeLong` from `StatFs` on
+   * `Environment.getDataDirectory()`. Absent when the platform does not
+   * report it.
+   *
+   * @since 0.1.0
+   */
+  freeDiskBytes?: number;
 }
