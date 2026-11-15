@@ -1,15 +1,15 @@
 import Foundation
 import Capacitor
 
-@objc(AppLifecyclePlugin)
-public class AppLifecyclePlugin: CAPPlugin, CAPBridgedPlugin {
-    public let identifier = "AppLifecyclePlugin"
-    public let jsName = "AppLifecycle"
+@objc(AppExtrasPlugin)
+public class AppExtrasPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "AppExtrasPlugin"
+    public let jsName = "AppExtras"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "forceClose", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getInfo", returnType: CAPPluginReturnPromise)
     ]
-    private let implementation = AppLifecycle()
+    private let implementation = ForceClose()
 
     @objc func forceClose(_ call: CAPPluginCall) {
         // Resolved first, so the promise settles in JavaScript before the process exits.

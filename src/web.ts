@@ -1,8 +1,8 @@
 import { WebPlugin } from '@capacitor/core';
 
-import type { AppInfo, AppLifecyclePlugin } from './definitions';
+import type { AppInfo, AppExtrasPlugin } from './definitions';
 
-export class AppLifecycleWeb extends WebPlugin implements AppLifecyclePlugin {
+export class AppExtrasWeb extends WebPlugin implements AppExtrasPlugin {
   async forceClose(): Promise<void> {
     throw this.unimplemented('forceClose is not available on the web.');
   }

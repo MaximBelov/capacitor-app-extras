@@ -3,7 +3,7 @@ import Foundation
 /// What `getInfo()` answers, and how it is read.
 ///
 /// The two reads are passed in so that the mapping can be tested without depending on the machine the tests run on;
-/// `AppLifecyclePlugin` uses the real ones.
+/// `AppExtrasPlugin` uses the real ones.
 public struct AppInfo: Equatable {
     public let isiOSAppOnMac: Bool
     /// Nil when the system does not report the free space.

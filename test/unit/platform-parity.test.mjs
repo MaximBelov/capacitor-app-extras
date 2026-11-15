@@ -7,14 +7,14 @@ import assert from 'node:assert/strict';
 const read = (path) => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 const api = [...read('src/definitions.ts').matchAll(/^\s+(\w+)\([^)]*\):\s*Promise</gm)].map((m) => m[1]).sort();
-const ios = [...read('ios/Sources/AppLifecyclePlugin/AppLifecyclePlugin.swift').matchAll(/CAPPluginMethod\(name:\s*"(\w+)"/g)]
+const ios = [...read('ios/Sources/AppExtrasPlugin/AppExtrasPlugin.swift').matchAll(/CAPPluginMethod\(name:\s*"(\w+)"/g)]
   .map((m) => m[1])
   .sort();
-const iosFunctions = [...read('ios/Sources/AppLifecyclePlugin/AppLifecyclePlugin.swift').matchAll(/@objc func (\w+)\(_ call: CAPPluginCall\)/g)]
+const iosFunctions = [...read('ios/Sources/AppExtrasPlugin/AppExtrasPlugin.swift').matchAll(/@objc func (\w+)\(_ call: CAPPluginCall\)/g)]
   .map((m) => m[1])
   .sort();
 const android = [
-  ...read('android/src/main/kotlin/io/github/maximbelov/applifecycle/AppLifecyclePlugin.kt').matchAll(/@PluginMethod\s+fun (\w+)\(/g),
+  ...read('android/src/main/kotlin/io/github/maximbelov/appextras/AppExtrasPlugin.kt').matchAll(/@PluginMethod\s+fun (\w+)\(/g),
 ]
   .map((m) => m[1])
   .sort();
@@ -36,9 +36,9 @@ test('Android annotates exactly the methods of the API', () => {
 });
 
 test('the plugin has the same name in JavaScript, Swift and Kotlin', () => {
-  assert.match(read('src/index.ts'), /registerPlugin<AppLifecyclePlugin>\('AppLifecycle'/);
-  assert.match(read('ios/Sources/AppLifecyclePlugin/AppLifecyclePlugin.swift'), /jsName = "AppLifecycle"/);
-  assert.match(read('android/src/main/kotlin/io/github/maximbelov/applifecycle/AppLifecyclePlugin.kt'), /@CapacitorPlugin\(name = "AppLifecycle"\)/);
+  assert.match(read('src/index.ts'), /registerPlugin<AppExtrasPlugin>\('AppExtras'/);
+  assert.match(read('ios/Sources/AppExtrasPlugin/AppExtrasPlugin.swift'), /jsName = "AppExtras"/);
+  assert.match(read('android/src/main/kotlin/io/github/maximbelov/appextras/AppExtrasPlugin.kt'), /@CapacitorPlugin\(name = "AppExtras"\)/);
 });
 
 test('the README documents every method', () => {
@@ -53,8 +53,8 @@ test('both platforms resolve getInfo() with exactly the fields of AppInfo', () =
   const body = read('src/definitions.ts').match(/export interface AppInfo \{([\s\S]*?)\n\}/)[1];
   const fields = [...body.matchAll(/^\s+(\w+)\??:/gm)].map((m) => m[1]).sort();
   assert.ok(fields.length > 0, 'no field found in AppInfo');
-  const swift = [...read('ios/Sources/AppLifecyclePlugin/AppInfo.swift').matchAll(/\["(\w+)"/g)].map((m) => m[1]);
-  const kotlin = [...read('android/src/main/kotlin/io/github/maximbelov/applifecycle/AppInfo.kt').matchAll(/put\("(\w+)"/g)].map((m) => m[1]);
+  const swift = [...read('ios/Sources/AppExtrasPlugin/AppInfo.swift').matchAll(/\["(\w+)"/g)].map((m) => m[1]);
+  const kotlin = [...read('android/src/main/kotlin/io/github/maximbelov/appextras/AppInfo.kt').matchAll(/put\("(\w+)"/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(swift)].sort(), fields);
   assert.deepEqual([...new Set(kotlin)].sort(), fields);
 });

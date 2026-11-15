@@ -1,4 +1,4 @@
-package io.github.maximbelov.applifecycle
+package io.github.maximbelov.appextras
 
 import android.os.Environment
 import android.os.Process
@@ -8,11 +8,11 @@ import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
 
-@CapacitorPlugin(name = "AppLifecycle")
-class AppLifecyclePlugin : Plugin() {
+@CapacitorPlugin(name = "AppExtras")
+class AppExtrasPlugin : Plugin() {
 
     private val implementation by lazy {
-        AppLifecycle(
+        ForceClose(
             runOnMainThread = { task ->
                 val activity = getActivity()
                 if (activity != null) activity.runOnUiThread(task) else task.run()

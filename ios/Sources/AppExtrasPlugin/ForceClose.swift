@@ -4,8 +4,8 @@ import Foundation
 ///
 /// The delay lets the resolved call travel back to the web view before the process goes, and keeps `exit` from racing a UIKit
 /// transition that is still running. The scheduler and the exit are passed in so that the delay and the guard can be tested
-/// without ending the test process; `AppLifecyclePlugin` uses the real ones.
-@objc public class AppLifecycle: NSObject {
+/// without ending the test process; `AppExtrasPlugin` uses the real ones.
+@objc public class ForceClose: NSObject {
     public static let defaultDelay: TimeInterval = 0.3
 
     public typealias Scheduler = (_ delay: TimeInterval, _ work: @escaping () -> Void) -> Void
@@ -17,8 +17,8 @@ import Foundation
     private var closing = false
 
     public init(
-        delay: TimeInterval = AppLifecycle.defaultDelay,
-        schedule: @escaping Scheduler = AppLifecycle.onMainQueue,
+        delay: TimeInterval = ForceClose.defaultDelay,
+        schedule: @escaping Scheduler = ForceClose.onMainQueue,
         terminate: @escaping () -> Void = { exit(0) }
     ) {
         self.delay = delay

@@ -1,6 +1,6 @@
 import XCTest
 import Capacitor
-@testable import AppLifecyclePlugin
+@testable import AppExtrasPlugin
 
 private struct DiskReadFailed: Error {}
 

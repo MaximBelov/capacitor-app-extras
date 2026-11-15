@@ -1,4 +1,4 @@
-package io.github.maximbelov.applifecycle
+package io.github.maximbelov.appextras
 
 import com.getcapacitor.JSObject
 

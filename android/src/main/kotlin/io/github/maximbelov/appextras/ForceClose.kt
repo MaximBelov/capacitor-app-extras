@@ -1,12 +1,12 @@
-package io.github.maximbelov.applifecycle
+package io.github.maximbelov.appextras
 
 /**
  * Ends the app process: finishes the activity task, then kills the process.
  *
  * The three steps are passed in so that the order and the guard can be tested on the JVM without ending the test process.
- * [AppLifecyclePlugin] passes the real ones.
+ * [AppExtrasPlugin] passes the real ones.
  */
-class AppLifecycle(
+class ForceClose(
     private val runOnMainThread: (Runnable) -> Unit,
     private val finishTask: () -> Unit,
     private val killProcess: () -> Unit,

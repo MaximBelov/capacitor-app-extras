@@ -1,4 +1,4 @@
-export interface AppLifecyclePlugin {
+export interface AppExtrasPlugin {
   /**
    * Terminates the app process, so that the next launch starts from scratch.
    *

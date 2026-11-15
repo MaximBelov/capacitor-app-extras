@@ -1,4 +1,4 @@
-package io.github.maximbelov.applifecycle
+package io.github.maximbelov.appextras
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

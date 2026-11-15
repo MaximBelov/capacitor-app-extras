@@ -48,4 +48,4 @@ jobs:
       - run: npm run build
       - run: npm run example:android:build
       - name: The plugin is registered in the app
-        run: grep -q 'io.github.maximbelov.applifecycle.AppLifecyclePlugin' example-app/android/app/src/main/assets/capacitor.plugins.json
+        run: grep -q 'io.github.maximbelov.appextras.AppExtrasPlugin' example-app/android/app/src/main/assets/capacitor.plugins.json

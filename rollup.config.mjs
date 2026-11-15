@@ -4,7 +4,7 @@ export default {
     {
       file: 'dist/plugin.js',
       format: 'iife',
-      name: 'capacitorAppLifecycle',
+      name: 'capacitorAppExtras',
       globals: {
         '@capacitor/core': 'capacitorExports',
       },

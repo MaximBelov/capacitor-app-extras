@@ -1,7 +1,7 @@
 {
-  "name": "capacitor-app-lifecycle-example",
+  "name": "capacitor-app-extras-example",
   "version": "1.0.0",
-  "description": "Example app for capacitor-app-lifecycle",
+  "description": "Example app for capacitor-app-extras",
   "type": "module",
   "keywords": [
     "capacitor",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.0.0",
-    "capacitor-app-lifecycle": "file:..",
+    "capacitor-app-extras": "file:..",
     "@capacitor/ios": "^8.0.0",
     "@capacitor/android": "^8.0.0"
   },

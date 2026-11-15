@@ -1,10 +1,10 @@
 import { registerPlugin } from '@capacitor/core';
 
-import type { AppLifecyclePlugin } from './definitions';
+import type { AppExtrasPlugin } from './definitions';
 
-const AppLifecycle = registerPlugin<AppLifecyclePlugin>('AppLifecycle', {
-  web: () => import('./web').then((m) => new m.AppLifecycleWeb()),
+const AppExtras = registerPlugin<AppExtrasPlugin>('AppExtras', {
+  web: () => import('./web').then((m) => new m.AppExtrasWeb()),
 });
 
 export * from './definitions';
-export { AppLifecycle };
+export { AppExtras };

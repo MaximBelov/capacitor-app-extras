@@ -1,39 +1,45 @@
-# capacitor-app-lifecycle
+# capacitor-app-extras
 
-Close a Capacitor app for good, from JavaScript, on iOS and Android. And read the two facts about the device you usually want
-before you do something drastic: how much disk space is free, and whether the iPhone app is running on a Mac.
+A small set of native calls that the official [`@capacitor/app`](https://capacitorjs.com/docs/apis/app) and
+[`@capacitor/device`](https://capacitorjs.com/docs/apis/device) plugins do not offer, for iOS and Android. It is meant to sit
+next to them, not to replace them.
 
-Sometimes an app gets into a state it cannot fix while it is running: a local database that has to be rebuilt, a native SDK that
-has to start again, a migration that needs a clean start. The usual way out is to ask the user to close the app and open it again.
-This plugin does the closing part. The process ends, and the next time the user taps the icon the app starts from scratch.
-
-It is a clean exit, not a crash. Crashing on purpose is a common workaround, and it fills your crash reporter with noise you then
-have to filter out. This plugin does not do that.
+| Call           | What it does                                                                      |
+| -------------- | --------------------------------------------------------------------------------- |
+| `forceClose()` | Ends the app process cleanly, so the next launch starts from scratch.             |
+| `getInfo()`    | Reads the free disk space, and whether an iPhone or iPad app is running on a Mac. |
 
 ## Install
 
 ```bash
-npm install capacitor-app-lifecycle
+npm install capacitor-app-extras
 npx cap sync
 ```
 
 Requires Capacitor 8. Android 8.0 (API 26) or newer, iOS 15 or newer. On iOS the plugin is a Swift package; CocoaPods works too.
 
-## Use
+## Closing the app
+
+Sometimes an app gets into a state it cannot fix while it is running: a local database that has to be rebuilt, a native SDK that
+has to start again, a migration that needs a clean start. The usual way out is to ask the user to close the app and open it again.
+`forceClose()` does the closing part. The process ends, and the next time the user taps the icon the app starts from scratch.
+
+It is a clean exit, not a crash. Crashing on purpose is a common workaround, and it fills your crash reporter with noise you then
+have to filter out. This plugin does not do that.
 
 ```typescript
-import { AppLifecycle } from 'capacitor-app-lifecycle';
+import { AppExtras } from 'capacitor-app-extras';
 
 async function restartFromScratch() {
   // Tell the user first: the app disappears as soon as this runs.
-  await AppLifecycle.forceClose();
+  await AppExtras.forceClose();
 }
 ```
 
 Do anything that has to happen first (saving, flushing logs, telling the user) **before** the call. Nothing after it is
 guaranteed to run.
 
-## How it closes the app
+### How it closes the app
 
 The two platforms do it differently, and that shows up in the promise.
 
@@ -54,16 +60,21 @@ should do there instead, for example reload:
 import { Capacitor } from '@capacitor/core';
 
 if (Capacitor.isNativePlatform()) {
-  await AppLifecycle.forceClose();
+  await AppExtras.forceClose();
 } else {
   window.location.href = '/';
 }
 ```
 
+#### A note on App Store review
+
+Apple's guidelines discourage apps that quit on their own. Use this for recovery, after telling the user what is about to happen,
+not as a normal way to leave the app.
+
 ## Reading the free space and the platform
 
 ```typescript
-const { isiOSAppOnMac, freeDiskBytes } = await AppLifecycle.getInfo();
+const { isiOSAppOnMac, freeDiskBytes } = await AppExtras.getInfo();
 
 if (freeDiskBytes !== undefined && freeDiskBytes < 200 * 1024 * 1024) {
   // less than 200 MB left: warn before a large download or a database rebuild
@@ -108,18 +119,13 @@ see Apple's list for the others. For example:
 An app that never calls `getInfo()` still links the code, so the declaration is the safe default for any app that installs the
 plugin.
 
-### A note on App Store review
-
-Apple's guidelines discourage apps that quit on their own. Use this for recovery, after telling the user what is about to happen,
-not as a normal way to leave the app.
-
 ## Coming from the Cordova plugin
 
 If you used a Cordova plugin that exposed `cordova.plugins.appLifecycle.forceClose()`, the call maps one to one:
 
-| Cordova                                                   | Capacitor                         |
-| --------------------------------------------------------- | --------------------------------- |
-| `cordova.plugins.appLifecycle.forceClose(success, error)` | `await AppLifecycle.forceClose()` |
+| Cordova                                                   | Capacitor                      |
+| --------------------------------------------------------- | ------------------------------ |
+| `cordova.plugins.appLifecycle.forceClose(success, error)` | `await AppExtras.forceClose()` |
 
 The native behaviour is the same: `exit(0)` after 0.3 seconds on iOS, `finishAffinity()` and a process kill on Android.
 

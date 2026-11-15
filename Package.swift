@@ -2,28 +2,28 @@
 import PackageDescription
 
 let package = Package(
-    name: "CapacitorAppLifecycle",
+    name: "CapacitorAppExtras",
     platforms: [.iOS(.v15)],
     products: [
         .library(
-            name: "CapacitorAppLifecycle",
-            targets: ["AppLifecyclePlugin"])
+            name: "CapacitorAppExtras",
+            targets: ["AppExtrasPlugin"])
     ],
     dependencies: [
         .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", from: "8.0.0")
     ],
     targets: [
         .target(
-            name: "AppLifecyclePlugin",
+            name: "AppExtrasPlugin",
             dependencies: [
                 .product(name: "Capacitor", package: "capacitor-swift-pm"),
                 .product(name: "Cordova", package: "capacitor-swift-pm")
             ],
-            path: "ios/Sources/AppLifecyclePlugin",
+            path: "ios/Sources/AppExtrasPlugin",
             resources: [.copy("PrivacyInfo.xcprivacy")]),
         .testTarget(
-            name: "AppLifecyclePluginTests",
-            dependencies: ["AppLifecyclePlugin"],
-            path: "ios/Tests/AppLifecyclePluginTests")
+            name: "AppExtrasPluginTests",
+            dependencies: ["AppExtrasPlugin"],
+            path: "ios/Tests/AppExtrasPluginTests")
     ]
 )

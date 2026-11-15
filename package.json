@@ -1,7 +1,7 @@
 {
-  "name": "capacitor-app-lifecycle",
+  "name": "capacitor-app-extras",
   "version": "0.1.0",
-  "description": "Cleanly terminate the app process on iOS and Android from a Capacitor app, and read the free disk space",
+  "description": "Small additions to the official Capacitor App and Device plugins: close the app process, read the free disk space and whether an iOS app runs on a Mac",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -13,17 +13,18 @@
     "ios/Sources",
     "ios/Tests",
     "Package.swift",
-    "CapacitorAppLifecycle.podspec"
+    "CapacitorAppExtras.podspec"
   ],
   "author": "Maxim Belov",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MaximBelov/capacitor-app-lifecycle.git"
+    "url": "git+https://github.com/MaximBelov/capacitor-app-extras.git"
   },
   "bugs": {
-    "url": "https://github.com/MaximBelov/capacitor-app-lifecycle/issues"
+    "url": "https://github.com/MaximBelov/capacitor-app-extras/issues"
   },
+  "homepage": "https://github.com/MaximBelov/capacitor-app-extras#readme",
   "keywords": [
     "capacitor",
     "plugin",
@@ -31,14 +32,15 @@
     "exit",
     "force close",
     "terminate",
-    "app lifecycle",
     "disk space",
     "free space",
-    "isiOSAppOnMac"
+    "isiOSAppOnMac",
+    "app extras",
+    "device"
   ],
   "scripts": {
     "verify": "npm run verify:ios && npm run verify:android && npm run verify:web",
-    "verify:ios": "xcodebuild build -scheme CapacitorAppLifecycle -destination generic/platform=iOS -derivedDataPath build/ios-device",
+    "verify:ios": "xcodebuild build -scheme CapacitorAppExtras -destination generic/platform=iOS -derivedDataPath build/ios-device",
     "verify:android": "cd android && ./gradlew clean build test",
     "verify:web": "npm run build",
     "lint": "npm run eslint && npm run prettier -- --check && npm run swiftlint -- lint",
@@ -46,7 +48,7 @@
     "eslint": "eslint . --ext ts",
     "prettier": "prettier \"**/*.{css,html,ts,js,java}\" --plugin=prettier-plugin-java",
     "swiftlint": "node-swiftlint",
-    "docgen": "docgen --api AppLifecyclePlugin --output-readme README.md --output-json dist/docs.json",
+    "docgen": "docgen --api AppExtrasPlugin --output-readme README.md --output-json dist/docs.json",
     "build": "npm run clean && npm run docgen && tsc && rollup -c rollup.config.mjs",
     "clean": "rimraf ./dist",
     "watch": "tsc --watch",
